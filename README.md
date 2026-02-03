@@ -92,19 +92,29 @@ npm run test:e2e
 flight-tracker/
 ├── src/
 │   ├── components/       # React components
-│   │   ├── MapView.tsx           # Main map and flight rendering
-│   │   ├── FlightDetailsPanel.tsx # Selected flight details
+│   │   ├── FlightDetailsPanel.tsx # Selected flight info panel
+│   │   ├── MapView.tsx            # Main map and flight rendering
 │   │   └── ViewportObserver.tsx   # Map viewport change detection
-│   ├── lib/              # Utilities and hooks
-│   │   ├── useFlights.ts         # Flight data fetching hook
-│   │   ├── useFlightDetails.ts   # Flight details hook
-│   │   ├── opensky.ts            # OpenSky Network API client
-│   │   ├── aviationEdge.ts       # Aviation Edge API client
-│   │   └── types.ts              # TypeScript interfaces
-│   └── test/             # Test setup
+│   ├── lib/              # Utilities, hooks, and API clients
+│   │   ├── aviationEdge.ts        # Aviation Edge API client
+│   │   ├── bbox.ts                # Bounding box utilities
+│   │   ├── filter.ts              # Flight filtering logic
+│   │   ├── flightProviders.ts     # Provider factory
+│   │   ├── marker.ts              # Map marker utilities
+│   │   ├── mockFlightDetailsProvider.ts # Mock provider for testing
+│   │   ├── opensky.ts             # OpenSky Network API client
+│   │   ├── providerConfig.ts      # Provider configuration loader
+│   │   ├── providers.ts           # Provider type definitions
+│   │   ├── runtimeConfig.ts       # Runtime config utilities
+│   │   ├── types.ts               # TypeScript interfaces
+│   │   ├── useFlightDetails.ts    # Flight details hook
+│   │   └── useFlights.ts          # Flight data fetching hook
+│   ├── test/             # Test setup (MSW handlers, setupTests)
+│   └── __tests__/        # Integration tests
 ├── server/               # Express backend
-│   ├── index.ts                  # Server entry point
-│   └── proxy.ts                  # API proxy routes
+│   ├── index.ts                   # Server entry point
+│   ├── proxy.ts                   # API proxy routes
+│   └── vitest.config.ts           # Server test config
 ├── e2e/                  # Playwright e2e tests
 ├── config/               # Provider configuration
 └── public/               # Static assets
