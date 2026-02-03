@@ -95,7 +95,7 @@ function bboxToSearchParams(bbox: Bbox) {
   return {
     lat: centerLat,
     lon: centerLon,
-    distanceKm: Math.ceil(cornerDistance)
+    distanceKm: Math.min(Math.ceil(cornerDistance), 500)
   };
 }
 

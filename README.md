@@ -1,5 +1,9 @@
 # Flight Tracker
 
+![Live flight map with selected route details](screenshot.png)
+
+_Live flight map with a selected route and detailed aircraft panel._
+
 A real-time web application that displays live aircraft positions on an interactive map. View flights, select them to see details, and track their routes.
 
 ## Features
