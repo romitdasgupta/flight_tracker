@@ -10,6 +10,9 @@ const AVIATION_EDGE_API_KEY = process.env.AVIATION_EDGE_API_KEY || process.env.V
 
 const app = express();
 
+// Trust reverse proxy (nginx, etc.) for correct client IP and protocol detection
+app.set('trust proxy', 1);
+
 // API proxy routes
 app.use('/api/proxy', createProxyRouter({ apiKey: AVIATION_EDGE_API_KEY }));
 

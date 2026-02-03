@@ -7,6 +7,7 @@
     "dev": "node scripts/select-provider.mjs && concurrently \"npm run dev:server\" \"vite\"",
     "dev:client": "node scripts/select-provider.mjs && vite",
     "dev:server": "tsx watch --env-file=.env.local server/index.ts",
+    "prebuild": "node scripts/ensure-provider.mjs",
     "build": "tsc -b && vite build",
     "build:server": "tsc -p server/tsconfig.json",
     "start": "node dist-server/index.js",
