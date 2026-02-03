@@ -9,6 +9,7 @@ import { useFlightDetails } from '../lib/useFlightDetails';
 import FlightDetailsPanel from './FlightDetailsPanel';
 import { createFlightIcon } from '../lib/marker';
 import type { FlightProvider } from '../lib/flightProviders';
+import { lookupAirport } from '../lib/airports';
 
 const DEFAULT_CENTER: [number, number] = [37.773972, -122.431297];
 const DEFAULT_ZOOM = 5;
@@ -76,6 +77,29 @@ export default function MapView({ provider }: MapViewProps) {
         : { altitude: 'm', speed: 'm/s', verticalSpeed: 'm/s' },
     [provider.id]
   );
+
+  // Compute origin path for selected flight (from origin airport to current position)
+  const originPath = useMemo(() => {
+    if (!selectedFlight?.latitude || !selectedFlight?.longitude) return null;
+
+    // Try details.origin first (most accurate)
+    if (details?.origin) {
+      return {
+        origin: { lat: details.origin.lat, lon: details.origin.lon },
+        current: { lat: selectedFlight.latitude, lon: selectedFlight.longitude }
+      };
+    }
+
+    // Fall back to airport database lookup
+    const flight = selectedFlight as { originIata?: string | null; originIcao?: string | null };
+    const originCoords = lookupAirport(flight.originIata, flight.originIcao);
+    if (!originCoords) return null;
+
+    return {
+      origin: originCoords,
+      current: { lat: selectedFlight.latitude, lon: selectedFlight.longitude }
+    };
+  }, [selectedFlight, details]);
 
   return (
     <div
@@ -148,6 +172,21 @@ export default function MapView({ provider }: MapViewProps) {
             pathOptions={{ color: '#f05d23', weight: 2 }}
           />
         ) : null}
+
+        {originPath && (
+          <Polyline
+            positions={[
+              [originPath.origin.lat, adjustLongitude(originPath.origin.lon)],
+              [originPath.current.lat, adjustLongitude(originPath.current.lon)]
+            ]}
+            pathOptions={{
+              color: '#2563eb',
+              weight: 3,
+              dashArray: '10, 6',
+              opacity: 0.8
+            }}
+          />
+        )}
       </MapContainer>
 
       {selectedFlight && (

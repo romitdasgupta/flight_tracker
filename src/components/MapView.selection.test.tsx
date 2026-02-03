@@ -116,6 +116,10 @@ describe('MapView selection', () => {
     // Flight details panel shows route info (origin/destination)
     expect(screen.getAllByText(/KSFO/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/KDEN/).length).toBeGreaterThan(0);
-    expect(screen.getByTestId('route')).toHaveAttribute('data-count', '2');
+    // Two polylines: route path (2 points) and origin-to-current path (2 points)
+    const polylines = screen.getAllByTestId('route');
+    expect(polylines.length).toBe(2);
+    expect(polylines[0]).toHaveAttribute('data-count', '2'); // route path
+    expect(polylines[1]).toHaveAttribute('data-count', '2'); // origin path
   });
 });
