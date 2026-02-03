@@ -24,6 +24,12 @@ const details: FlightDetails = {
   ]
 };
 
+const units = {
+  altitude: 'ft',
+  speed: 'kt',
+  verticalSpeed: 'ft/m'
+};
+
 describe('FlightDetailsPanel', () => {
   it('renders flight details and route info', () => {
     render(
@@ -32,6 +38,7 @@ describe('FlightDetailsPanel', () => {
         details={details}
         loading={false}
         error={null}
+        units={units}
       />
     );
 
@@ -49,6 +56,7 @@ describe('FlightDetailsPanel', () => {
         details={null}
         loading={true}
         error={null}
+        units={units}
       />
     );
 
@@ -62,6 +70,7 @@ describe('FlightDetailsPanel', () => {
         details={null}
         loading={false}
         error={new Error('boom')}
+        units={units}
       />
     );
 

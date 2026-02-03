@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import MapView from './MapView';
 
 vi.mock('react-leaflet', () => ({
@@ -52,7 +52,13 @@ vi.mock('../lib/providers', () => ({
 
 vi.mock('./ViewportObserver', () => ({
   default: ({ onBboxChange }: { onBboxChange: (bbox: any) => void }) => {
-    onBboxChange({ minLat: 10, minLon: 20, maxLat: 30, maxLon: 40 });
+    const called = useRef(false);
+    useEffect(() => {
+      if (!called.current) {
+        called.current = true;
+        onBboxChange({ minLat: 10, minLon: 20, maxLat: 30, maxLon: 40 });
+      }
+    }, [onBboxChange]);
     return null;
   }
 }));

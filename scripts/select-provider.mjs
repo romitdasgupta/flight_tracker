@@ -92,6 +92,17 @@ async function main() {
   try {
     const providers = await readProviders();
     const currentId = await readRuntimeSelection();
+
+    // In E2E mode, skip interactive prompt and use existing or first provider
+    if (process.env.VITE_E2E) {
+      const provider = currentId
+        ? providers.find((p) => p.id === currentId) ?? providers[0]
+        : providers[0];
+      await writeRuntimeConfig(provider);
+      process.stdout.write(`\nUsing provider (E2E): ${provider.name}\n`);
+      return;
+    }
+
     const selected = await promptSelection(providers, currentId);
     await writeRuntimeConfig(selected);
     process.stdout.write(`\nUsing provider: ${selected.name}\n`);

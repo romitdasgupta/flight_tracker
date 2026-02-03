@@ -1,35 +1,99 @@
 # Flight Tracker
 
-Simple web flight tracker that renders live flights on a Leaflet map and filters them to the current viewport.
+A real-time web application that displays live aircraft positions on an interactive map. View flights, select them to see details, and track their routes.
 
-## Stack
-- React + TypeScript + Vite
-- Leaflet + OpenStreetMap tiles
-- Vitest + React Testing Library + MSW
-- Playwright (e2e)
+## Features
 
-## Getting started
+- **Live Flight Visualization**: Real-time aircraft positions with animated markers showing heading/direction
+- **Viewport-based Filtering**: Only fetches and displays flights within the current map viewport for performance
+- **Flight Selection**: Click on any flight to view detailed information including altitude, speed, heading, airline, aircraft, and route
+- **Flight Path Display**: View the flight path as a polyline on the map when a flight is selected
+- **Multiple Data Providers**: Supports OpenSky Network (free) and Aviation Edge (API key required)
+- **International Date Line Support**: Correctly displays flights when panning across the date line
+
+## Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **Mapping**: Leaflet + React-Leaflet + OpenStreetMap tiles
+- **Testing**: Vitest + React Testing Library + MSW (unit tests), Playwright (e2e)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
 ```bash
+git clone https://github.com/yourusername/flight-tracker.git
+cd flight-tracker
 npm install
+```
+
+### Running the App
+
+```bash
 npm run dev
 ```
 
 On startup, the dev server prompts you to select a flight data provider. Providers are defined in `config/providers.json`. The selected provider is written to `public/runtime-provider.json`.
 
-### Aviation Edge
-Set `VITE_AVIATION_EDGE_API_KEY` in your environment or `.env.local` if you select the Aviation Edge provider.
+### Provider Configuration
 
-## Tests
+#### OpenSky Network (Default)
+No API key required. Free tier with rate limits.
+
+#### Aviation Edge
+Requires an API key. Set `VITE_AVIATION_EDGE_API_KEY` in your environment or `.env.local`:
+
 ```bash
+cp .env.example .env.local
+# Edit .env.local and add your API key
+```
+
+Get your API key at [aviation-edge.com](https://aviation-edge.com/)
+
+## Testing
+
+```bash
+# Run unit tests in watch mode
 npm test
+
+# Run unit tests once
 npm run test:run
+
+# Run e2e tests
 npm run test:e2e
 ```
 
-## Attribution
-- Map tiles: OpenStreetMap contributors
-- Flight data: OpenSky Network
+## Project Structure
 
-## Pluggable flight details provider
-v2 uses a provider interface for flight details (origin/destination/path). The default provider is a mock implementation.
-Replace `flightDetailsProvider` in `src/lib/providers.ts` with a real API-backed provider when ready.
+```
+flight-tracker/
+├── src/
+│   ├── components/       # React components
+│   │   ├── MapView.tsx           # Main map and flight rendering
+│   │   ├── FlightDetailsPanel.tsx # Selected flight details
+│   │   └── ViewportObserver.tsx   # Map viewport change detection
+│   ├── lib/              # Utilities and hooks
+│   │   ├── useFlights.ts         # Flight data fetching hook
+│   │   ├── useFlightDetails.ts   # Flight details hook
+│   │   ├── opensky.ts            # OpenSky Network API client
+│   │   ├── aviationEdge.ts       # Aviation Edge API client
+│   │   └── types.ts              # TypeScript interfaces
+│   └── test/             # Test setup
+├── e2e/                  # Playwright e2e tests
+├── config/               # Provider configuration
+└── public/               # Static assets
+```
+
+## Attribution
+
+- Map tiles: [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
+- Flight data: [OpenSky Network](https://opensky-network.org/) / [Aviation Edge](https://aviation-edge.com/)
+
+## License
+
+MIT
