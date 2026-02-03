@@ -7,6 +7,7 @@ public/runtime-provider.json
 
 .env
 .env.*
+!.env.example
 
 npm-debug.log*
 yarn-debug.log*
