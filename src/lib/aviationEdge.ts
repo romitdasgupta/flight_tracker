@@ -2,7 +2,6 @@ import type { Bbox, FlightState } from './types';
 
 type AviationEdgeClientOptions = {
   baseUrl: string;
-  apiKey: string | null;
   limit?: number;
   fetchFn?: typeof fetch;
 };
@@ -104,13 +103,8 @@ export function createAviationEdgeClient(options: AviationEdgeClientOptions) {
   const fetchFn = options.fetchFn ?? fetch;
 
   async function getStates(bbox: Bbox): Promise<FlightState[]> {
-    if (!options.apiKey) {
-      throw new Error('Aviation Edge API key missing');
-    }
-
     const { lat, lon, distanceKm } = bboxToSearchParams(bbox);
-    const url = new URL(options.baseUrl);
-    url.searchParams.set('key', options.apiKey);
+    const url = new URL(options.baseUrl, window.location.origin);
     url.searchParams.set('lat', lat.toString());
     url.searchParams.set('lng', lon.toString());
     url.searchParams.set('distance', distanceKm.toString());

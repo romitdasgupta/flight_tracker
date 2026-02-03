@@ -14,6 +14,7 @@ A real-time web application that displays live aircraft positions on an interact
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Express.js (API proxy for secure key handling)
 - **Mapping**: Leaflet + React-Leaflet + OpenStreetMap tiles
 - **Testing**: Vitest + React Testing Library + MSW (unit tests), Playwright (e2e)
 
@@ -38,7 +39,7 @@ npm install
 npm run dev
 ```
 
-On startup, the dev server prompts you to select a flight data provider. Providers are defined in `config/providers.json`. The selected provider is written to `public/runtime-provider.json`.
+This starts both the Express backend (port 3001) and Vite dev server concurrently. On startup, the dev server prompts you to select a flight data provider. Providers are defined in `config/providers.json`. The selected provider is written to `public/runtime-provider.json`.
 
 ### Provider Configuration
 
@@ -46,14 +47,27 @@ On startup, the dev server prompts you to select a flight data provider. Provide
 No API key required. Free tier with rate limits.
 
 #### Aviation Edge
-Requires an API key. Set `VITE_AVIATION_EDGE_API_KEY` in your environment or `.env.local`:
+Requires an API key. Set `AVIATION_EDGE_API_KEY` in your environment or `.env.local`:
 
 ```bash
 cp .env.example .env.local
 # Edit .env.local and add your API key
 ```
 
-Get your API key at [aviation-edge.com](https://aviation-edge.com/)
+The API key is kept server-side only and never exposed to the browser. Get your API key at [aviation-edge.com](https://aviation-edge.com/)
+
+### Production Build
+
+```bash
+# Build client and server
+npm run build
+npm run build:server
+
+# Start production server
+AVIATION_EDGE_API_KEY=your_key npm start
+```
+
+The Express server serves the static frontend from `dist/` and handles API proxying on a single port.
 
 ## Testing
 
@@ -84,6 +98,9 @@ flight-tracker/
 │   │   ├── aviationEdge.ts       # Aviation Edge API client
 │   │   └── types.ts              # TypeScript interfaces
 │   └── test/             # Test setup
+├── server/               # Express backend
+│   ├── index.ts                  # Server entry point
+│   └── proxy.ts                  # API proxy routes
 ├── e2e/                  # Playwright e2e tests
 ├── config/               # Provider configuration
 └── public/               # Static assets

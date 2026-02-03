@@ -11,8 +11,7 @@
       "id": "aviation-edge",
       "name": "Aviation Edge",
       "type": "aviation-edge",
-      "baseUrl": "https://aviation-edge.com/v2/public/flights",
-      "apiKeyEnv": "VITE_AVIATION_EDGE_API_KEY",
+      "baseUrl": "/api/proxy/aviation-edge/flights",
       "attribution": "Data: Aviation Edge",
       "params": {
         "limit": 300
