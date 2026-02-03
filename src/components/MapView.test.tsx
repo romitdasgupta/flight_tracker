@@ -8,15 +8,40 @@ vi.mock('react-leaflet', () => ({
     <div data-testid="map">{children}</div>
   ),
   TileLayer: () => null,
-  CircleMarker: ({ center }: { center: [number, number] }) => (
-    <div data-testid="marker" data-center={`${center[0]},${center[1]}`} />
-  )
+  CircleMarker: ({
+    center,
+    children,
+    eventHandlers
+  }: {
+    center: [number, number];
+    children?: ReactNode;
+    eventHandlers?: { click?: () => void };
+  }) => (
+    <div
+      data-testid="marker"
+      data-center={`${center[0]},${center[1]}`}
+      onClick={() => eventHandlers?.click?.()}
+    >
+      {children}
+    </div>
+  ),
+  Tooltip: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  Polyline: () => null
 }));
 
 const mockUseOpenSkyFlights = vi.fn();
 
 vi.mock('../lib/useFlights', () => ({
   useOpenSkyFlights: (...args: unknown[]) => mockUseOpenSkyFlights(...args)
+}));
+
+const mockUseFlightDetails = vi.fn();
+vi.mock('../lib/useFlightDetails', () => ({
+  useFlightDetails: (...args: unknown[]) => mockUseFlightDetails(...args)
+}));
+
+vi.mock('../lib/providers', () => ({
+  flightDetailsProvider: { getFlightDetails: vi.fn() }
 }));
 
 vi.mock('./ViewportObserver', () => ({
@@ -29,6 +54,7 @@ vi.mock('./ViewportObserver', () => ({
 describe('MapView', () => {
   beforeEach(() => {
     mockUseOpenSkyFlights.mockReset();
+    mockUseFlightDetails.mockReset();
   });
 
   it('renders markers for flights inside viewport', () => {
@@ -57,10 +83,16 @@ describe('MapView', () => {
       error: null
     });
 
+    mockUseFlightDetails.mockReturnValue({
+      details: null,
+      loading: false,
+      error: null
+    });
+
     render(<MapView />);
 
     const markers = screen.getAllByTestId('marker');
-    expect(markers).toHaveLength(1);
+    expect(markers).toHaveLength(2);
     expect(markers[0]).toHaveAttribute('data-center', '12,22');
   });
 
@@ -68,6 +100,12 @@ describe('MapView', () => {
     mockUseOpenSkyFlights.mockReturnValue({
       flights: [],
       loading: true,
+      error: null
+    });
+
+    mockUseFlightDetails.mockReturnValue({
+      details: null,
+      loading: false,
       error: null
     });
 
@@ -82,6 +120,12 @@ describe('MapView', () => {
       error: new Error('nope')
     });
 
+    mockUseFlightDetails.mockReturnValue({
+      details: null,
+      loading: false,
+      error: null
+    });
+
     render(<MapView />);
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to load flights.');
   });
@@ -89,6 +133,12 @@ describe('MapView', () => {
   it('renders OpenSky attribution', () => {
     mockUseOpenSkyFlights.mockReturnValue({
       flights: [],
+      loading: false,
+      error: null
+    });
+
+    mockUseFlightDetails.mockReturnValue({
+      details: null,
       loading: false,
       error: null
     });

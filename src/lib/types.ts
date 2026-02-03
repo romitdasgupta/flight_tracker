@@ -15,6 +15,28 @@ export type FlightState = {
   heading: number | null;
 };
 
+export type LatLng = {
+  lat: number;
+  lon: number;
+};
+
+export type Airport = LatLng & {
+  code: string;
+  name: string;
+};
+
+export type FlightDetails = {
+  icao24: string;
+  callsign: string | null;
+  origin?: Airport;
+  destination?: Airport;
+  path: LatLng[];
+};
+
+export type FlightDetailsProvider = {
+  getFlightDetails: (icao24: string) => Promise<FlightDetails | null>;
+};
+
 export type BoundsLike = {
   south: number;
   west: number;

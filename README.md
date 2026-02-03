@@ -24,3 +24,7 @@ npm run test:e2e
 ## Attribution
 - Map tiles: OpenStreetMap contributors
 - Flight data: OpenSky Network
+
+## Pluggable flight details provider
+v2 uses a provider interface for flight details (origin/destination/path). The default provider is a mock implementation.
+Replace `flightDetailsProvider` in `src/lib/providers.ts` with a real API-backed provider when ready.
