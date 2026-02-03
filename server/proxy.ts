@@ -19,7 +19,7 @@ function isValidLng(val: unknown): boolean {
 
 function isValidDistance(val: unknown): boolean {
   const num = Number(val);
-  return !isNaN(num) && num > 0;
+  return !isNaN(num) && num > 0 && num <= 500;
 }
 
 export function createProxyRouter(deps: ProxyDeps): Router {
@@ -68,14 +68,22 @@ export function createProxyRouter(deps: ProxyDeps): Router {
       }
 
       const response = await fetchFn(url.toString());
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
 
       if (!response.ok) {
-        // Sanitize error response - never include API key details
+        console.error(`[Proxy] Aviation Edge returned ${response.status}`);
         res.status(response.status).json({ error: 'Aviation Edge API error' });
         return;
       }
 
+      // Ensure we received JSON
+      if (!contentType.includes('application/json')) {
+        console.error(`[Proxy] Aviation Edge returned non-JSON: ${contentType}`);
+        res.status(502).json({ error: 'Invalid response from Aviation Edge' });
+        return;
+      }
+
+      const data = await response.json();
       res.json(data);
     } catch (error) {
       // Log error server-side but don't expose details to client

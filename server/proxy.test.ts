@@ -23,6 +23,9 @@ describe('proxy', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null
+        },
         json: () => Promise.resolve(mockFlightData)
       });
 
@@ -47,6 +50,9 @@ describe('proxy', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null
+        },
         json: () => Promise.resolve([])
       });
 
@@ -169,6 +175,9 @@ describe('proxy', () => {
         mockFetch.mockResolvedValueOnce({
           ok: false,
           status: 401,
+          headers: {
+            get: (name: string) => name === 'content-type' ? 'application/json' : null
+          },
           json: () => Promise.resolve({ error: 'Invalid API key' })
         });
 
@@ -204,6 +213,44 @@ describe('proxy', () => {
         const responseText = JSON.stringify(res.body);
         expect(responseText).not.toContain(mockApiKey);
         expect(responseText).not.toContain('test-api-key');
+      });
+
+      it('returns 502 when Aviation Edge returns HTML instead of JSON', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: {
+            get: (name: string) => name === 'content-type' ? 'text/html; charset=utf-8' : null
+          },
+          json: () => Promise.reject(new SyntaxError('Unexpected token <'))
+        });
+
+        const app = createTestApp(mockApiKey, mockFetch);
+        const res = await request(app)
+          .get('/api/proxy/aviation-edge/flights')
+          .query({ lat: 40, lng: -74, distance: 100 });
+
+        expect(res.status).toBe(502);
+        expect(res.body.error).toBe('Invalid response from Aviation Edge');
+      });
+
+      it('returns 502 when content-type header is missing', async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: {
+            get: () => null
+          },
+          json: () => Promise.reject(new SyntaxError('Unexpected token <'))
+        });
+
+        const app = createTestApp(mockApiKey, mockFetch);
+        const res = await request(app)
+          .get('/api/proxy/aviation-edge/flights')
+          .query({ lat: 40, lng: -74, distance: 100 });
+
+        expect(res.status).toBe(502);
+        expect(res.body.error).toBe('Invalid response from Aviation Edge');
       });
     });
   });
