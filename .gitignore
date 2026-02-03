@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 /dist
+/dist-server
 /playwright-report
 /test-results
 public/runtime-provider.json
