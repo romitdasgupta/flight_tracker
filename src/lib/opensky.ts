@@ -22,27 +22,12 @@ export function createOpenSkyClient(options: OpenSkyClientOptions = {}) {
   let lastFetchedAt = 0;
   let lastResult: FlightState[] = [];
 
-  async function getStates(bbox: Bbox): Promise<FlightState[]> {
-    const key = JSON.stringify(bbox);
-    const now = Date.now();
-
-    // Cache: If same bounds and fresh enough, return last result.
-    if (lastKey === key && now - lastFetchedAt < cacheMs) {
-      return lastResult;
-    }
-
-    // Rate limit: If different bounds but too soon, return last result to avoid 429.
-    // OpenSky anonymous limit is ~10s resolution, potentially strict rate limits.
-    const RELAXED_Refetch_Interval = 5000;
-    if (now - lastFetchedAt < RELAXED_Refetch_Interval) {
-      return lastResult;
-    }
-
+  async function fetchStates(bounds: Bbox): Promise<FlightState[]> {
     const url = new URL(baseUrl);
-    url.searchParams.set('lamin', bbox.minLat.toString());
-    url.searchParams.set('lomin', bbox.minLon.toString());
-    url.searchParams.set('lamax', bbox.maxLat.toString());
-    url.searchParams.set('lomax', bbox.maxLon.toString());
+    url.searchParams.set('lamin', bounds.minLat.toString());
+    url.searchParams.set('lomin', bounds.minLon.toString());
+    url.searchParams.set('lamax', bounds.maxLat.toString());
+    url.searchParams.set('lomax', bounds.maxLon.toString());
 
     const response = await fetchFn(url.toString());
     if (!response.ok) {
@@ -52,7 +37,7 @@ export function createOpenSkyClient(options: OpenSkyClientOptions = {}) {
     const data = (await response.json()) as OpenSkyResponse;
     const states = data.states ?? [];
 
-    const mapped = states.map((state) => {
+    return states.map((state) => {
       const icao24 = String(state[0] ?? '').trim();
       const callsign = state[1] ? String(state[1]).trim() : null;
       const longitude = state[5] == null ? null : Number(state[5]);
@@ -71,6 +56,42 @@ export function createOpenSkyClient(options: OpenSkyClientOptions = {}) {
         heading
       } satisfies FlightState;
     });
+  }
+
+  async function getStates(bbox: Bbox): Promise<FlightState[]> {
+    const key = JSON.stringify(bbox);
+    const now = Date.now();
+
+    // Cache: If same bounds and fresh enough, return last result.
+    if (lastKey === key && now - lastFetchedAt < cacheMs) {
+      return lastResult;
+    }
+
+    // Rate limit: If different bounds but too soon, return last result to avoid 429.
+    // OpenSky anonymous limit is ~10s resolution, potentially strict rate limits.
+    const RELAXED_Refetch_Interval = 5000;
+    if (now - lastFetchedAt < RELAXED_Refetch_Interval) {
+      return lastResult;
+    }
+
+    let mapped: FlightState[] = [];
+    if (bbox.wrapsDateline || bbox.minLon > bbox.maxLon) {
+      const left = await fetchStates({
+        minLat: bbox.minLat,
+        maxLat: bbox.maxLat,
+        minLon: bbox.minLon,
+        maxLon: 180
+      });
+      const right = await fetchStates({
+        minLat: bbox.minLat,
+        maxLat: bbox.maxLat,
+        minLon: -180,
+        maxLon: bbox.maxLon
+      });
+      mapped = left.concat(right);
+    } else {
+      mapped = await fetchStates(bbox);
+    }
 
     const unique = Array.from(new Map(mapped.map((f) => [f.icao24, f])).values());
 

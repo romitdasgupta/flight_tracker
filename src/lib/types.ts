@@ -3,6 +3,8 @@ export type Bbox = {
   minLon: number;
   maxLat: number;
   maxLon: number;
+  wrapsDateline?: boolean;
+  viewCenterLng?: number;
 };
 
 export type FlightState = {

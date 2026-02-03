@@ -39,8 +39,28 @@ export default function MapView({ provider }: MapViewProps) {
 
   const visibleFlights = useMemo(() => {
     if (!bbox) return [];
-    return filterFlightsByBbox(flights, bbox);
+    const filtered = filterFlightsByBbox(flights, bbox);
+    if (import.meta.env.DEV) {
+      console.debug('[MapView] visible flights', {
+        total: flights.length,
+        visible: filtered.length,
+        bbox
+      });
+    }
+    return filtered;
   }, [bbox, flights]);
+
+  // Adjust longitude to be within 180 degrees of the view center
+  // This ensures markers appear in the correct world copy when panning across the dateline
+  const adjustLongitude = useMemo(() => {
+    const viewCenter = bbox?.viewCenterLng ?? 0;
+    return (lng: number) => {
+      let adjusted = lng;
+      while (adjusted - viewCenter > 180) adjusted -= 360;
+      while (adjusted - viewCenter < -180) adjusted += 360;
+      return adjusted;
+    };
+  }, [bbox?.viewCenterLng]);
 
   const selectedFlight = useMemo(
     () =>
@@ -76,7 +96,7 @@ export default function MapView({ provider }: MapViewProps) {
         {visibleFlights.map((flight) => (
           <Marker
             key={flight.icao24}
-            position={[flight.latitude ?? 0, flight.longitude ?? 0]}
+            position={[flight.latitude ?? 0, adjustLongitude(flight.longitude ?? 0)]}
             icon={createFlightIcon(flight.heading)}
             eventHandlers={{
               click: () => setSelectedIcao(flight.icao24),
@@ -124,7 +144,7 @@ export default function MapView({ provider }: MapViewProps) {
 
         {details?.path.length ? (
           <Polyline
-            positions={details.path.map((point) => [point.lat, point.lon])}
+            positions={details.path.map((point) => [point.lat, adjustLongitude(point.lon)])}
             pathOptions={{ color: '#f05d23', weight: 2 }}
           />
         ) : null}

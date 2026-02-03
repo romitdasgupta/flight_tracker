@@ -18,17 +18,30 @@ export default function ViewportObserver({ onBboxChange }: ViewportObserverProps
   });
 
   const emitBbox = useCallback(() => {
-    const bounds = map.wrapLatLngBounds(map.getBounds());
+    const bounds = map.getBounds();
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
-    onBboxChange(
-      bboxFromBounds({
-        south: sw.lat,
-        west: sw.lng,
-        north: ne.lat,
-        east: ne.lng
-      })
-    );
+
+    // Normalize longitude to -180 to 180 range
+    const wrapLng = (lng: number) => ((((lng % 360) + 540) % 360) - 180);
+
+    const west = wrapLng(sw.lng);
+    const east = wrapLng(ne.lng);
+
+    // Keep raw center longitude for marker positioning across world copies
+    const rawCenterLng = map.getCenter().lng;
+
+    const bbox = bboxFromBounds({
+      south: sw.lat,
+      west,
+      north: ne.lat,
+      east
+    });
+
+    onBboxChange({
+      ...bbox,
+      viewCenterLng: rawCenterLng
+    });
   }, [map, onBboxChange]);
 
   useEffect(() => {

@@ -67,8 +67,31 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 function bboxToSearchParams(bbox: Bbox) {
   const centerLat = (bbox.minLat + bbox.maxLat) / 2;
-  const centerLon = (bbox.minLon + bbox.maxLon) / 2;
-  const cornerDistance = distanceKm(centerLat, centerLon, bbox.maxLat, bbox.maxLon);
+  let centerLon = (bbox.minLon + bbox.maxLon) / 2;
+
+  if (bbox.wrapsDateline || bbox.minLon > bbox.maxLon) {
+    const minLon360 = (bbox.minLon + 360) % 360;
+    const maxLon360 = (bbox.maxLon + 360) % 360;
+    const span = (maxLon360 + 360 - minLon360) % 360;
+    const centerLon360 = (minLon360 + span / 2) % 360;
+    centerLon = centerLon360 > 180 ? centerLon360 - 360 : centerLon360;
+  }
+
+  const normalizeLonToCenter = (lon: number) => {
+    let adjusted = lon;
+    while (adjusted - centerLon > 180) adjusted -= 360;
+    while (adjusted - centerLon < -180) adjusted += 360;
+    return adjusted;
+  };
+
+  const cornerLon = normalizeLonToCenter(bbox.maxLon);
+  const oppositeCornerLon = normalizeLonToCenter(bbox.minLon);
+  const cornerDistance = Math.max(
+    distanceKm(centerLat, centerLon, bbox.maxLat, cornerLon),
+    distanceKm(centerLat, centerLon, bbox.maxLat, oppositeCornerLon),
+    distanceKm(centerLat, centerLon, bbox.minLat, cornerLon),
+    distanceKm(centerLat, centerLon, bbox.minLat, oppositeCornerLon)
+  );
 
   return {
     lat: centerLat,
@@ -136,6 +159,16 @@ export function createAviationEdgeClient(options: AviationEdgeClientOptions) {
         updated: flight.system?.updated ?? null
       } satisfies FlightState;
     });
+
+    if (import.meta.env.DEV) {
+      const missingCoords = mapped.filter(
+        (flight) => flight.latitude == null || flight.longitude == null
+      ).length;
+      console.debug('[AviationEdge] mapped flights', {
+        total: mapped.length,
+        missingCoords
+      });
+    }
 
     return Array.from(new Map(mapped.map((f) => [f.icao24, f])).values());
   }

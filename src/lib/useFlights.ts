@@ -22,6 +22,13 @@ export function useFlights({ bbox, provider }: UseFlightsOptions) {
       return;
     }
 
+    if (import.meta.env.DEV) {
+      console.debug('[useFlights] request', {
+        provider: client.id,
+        bbox
+      });
+    }
+
     setLoading(true);
     setError(null);
 
@@ -29,6 +36,12 @@ export function useFlights({ bbox, provider }: UseFlightsOptions) {
       .getStates(bbox)
       .then((data) => {
         if (cancelled) return;
+        if (import.meta.env.DEV) {
+          console.debug('[useFlights] response', {
+            provider: client.id,
+            flights: data.length
+          });
+        }
         setFlights(data);
         setLoading(false);
       })
