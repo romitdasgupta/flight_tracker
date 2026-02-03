@@ -73,6 +73,76 @@ AVIATION_EDGE_API_KEY=your_key npm start
 
 The Express server serves the static frontend from `dist/` and handles API proxying on a single port.
 
+## Production Deployment with a Domain
+
+### Using a Reverse Proxy (Recommended)
+
+1. **Build and start the app**:
+   ```bash
+   npm run build && npm run build:server
+   AVIATION_EDGE_API_KEY=your_key npm start
+   ```
+   The server listens on port 3001 by default (configurable via `PORT` env var).
+
+2. **Set up nginx as a reverse proxy**:
+   ```nginx
+   server {
+       listen 80;
+       server_name flights.yourdomain.com;
+
+       location / {
+           proxy_pass http://127.0.0.1:3001;
+           proxy_http_version 1.1;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+
+3. **Enable HTTPS with Let's Encrypt**:
+   ```bash
+   sudo certbot --nginx -d flights.yourdomain.com
+   ```
+
+4. **Keep the server running** with a process manager:
+   ```bash
+   # Using PM2
+   npm install -g pm2
+   PORT=3001 AVIATION_EDGE_API_KEY=your_key pm2 start dist-server/index.js --name flight-tracker
+   pm2 save
+   pm2 startup
+   ```
+
+### Using Docker
+
+Create a `Dockerfile`:
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist/ ./dist/
+COPY dist-server/ ./dist-server/
+EXPOSE 3001
+CMD ["node", "dist-server/index.js"]
+```
+
+Build and run:
+```bash
+npm run build && npm run build:server
+docker build -t flight-tracker .
+docker run -d -p 3001:3001 -e AVIATION_EDGE_API_KEY=your_key flight-tracker
+```
+
+### Cloud Platforms
+
+The app works with any platform that supports Node.js:
+
+- **Railway/Render/Fly.io**: Connect your repo and set `AVIATION_EDGE_API_KEY` in environment variables. The build commands are already defined in `package.json`.
+- **AWS/GCP/Azure**: Deploy the Docker image or use their Node.js runtime with the production build.
+
 ## Testing
 
 ```bash
