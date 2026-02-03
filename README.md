@@ -14,6 +14,11 @@ npm install
 npm run dev
 ```
 
+On startup, the dev server prompts you to select a flight data provider. Providers are defined in `config/providers.json`. The selected provider is written to `public/runtime-provider.json`.
+
+### Aviation Edge
+Set `VITE_AVIATION_EDGE_API_KEY` in your environment or `.env.local` if you select the Aviation Edge provider.
+
 ## Tests
 ```bash
 npm test

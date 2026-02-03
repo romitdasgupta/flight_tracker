@@ -8,6 +8,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setupTests.ts'],
     css: true,
-    exclude: ['e2e/**']
+    exclude: ['**/node_modules/**', 'node_modules/**', 'e2e/**'],
+    poolOptions: {
+      threads: {
+        singleThread: true
+      }
+    }
   }
 });

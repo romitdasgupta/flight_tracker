@@ -9,33 +9,36 @@ vi.mock('react-leaflet', () => ({
     <div data-testid="map">{children}</div>
   ),
   TileLayer: () => null,
-  CircleMarker: ({
-    center,
+  Marker: ({
+    position,
     children,
     eventHandlers
   }: {
-    center: [number, number];
+    position: [number, number];
     children?: ReactNode;
-    eventHandlers?: { click?: () => void };
+    eventHandlers?: { click?: () => void; mouseover?: () => void; mouseout?: () => void };
   }) => (
     <button
       type="button"
       data-testid="marker"
-      data-center={`${center[0]},${center[1]}`}
+      data-center={`${position[0]},${position[1]}`}
       onClick={() => eventHandlers?.click?.()}
+      onMouseOver={() => eventHandlers?.mouseover?.()}
+      onMouseOut={() => eventHandlers?.mouseout?.()}
     >
       {children}
     </button>
   ),
   Tooltip: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  Popup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   Polyline: ({ positions }: { positions: [number, number][] }) => (
     <div data-testid="route" data-count={positions.length} />
   )
 }));
 
-const mockUseOpenSkyFlights = vi.fn();
+const mockUseFlights = vi.fn();
 vi.mock('../lib/useFlights', () => ({
-  useOpenSkyFlights: (...args: unknown[]) => mockUseOpenSkyFlights(...args)
+  useFlights: (...args: unknown[]) => mockUseFlights(...args)
 }));
 
 const mockUseFlightDetails = vi.fn();
@@ -79,7 +82,7 @@ const details: FlightDetails = {
 
 describe('MapView selection', () => {
   it('shows details panel and route on marker click', () => {
-    mockUseOpenSkyFlights.mockReturnValue({
+    mockUseFlights.mockReturnValue({
       flights,
       loading: false,
       error: null
@@ -91,7 +94,16 @@ describe('MapView selection', () => {
       error: null
     });
 
-    render(<MapView />);
+    render(
+      <MapView
+        provider={{
+          id: 'opensky',
+          name: 'OpenSky',
+          attribution: 'Data: OpenSky Network',
+          getStates: vi.fn()
+        }}
+      />
+    );
 
     fireEvent.click(screen.getByTestId('marker'));
 

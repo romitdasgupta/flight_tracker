@@ -1,20 +1,26 @@
 import { useMemo, useState } from 'react';
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from 'react-leaflet';
+import { MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip } from 'react-leaflet';
 import type { Bbox } from '../lib/types';
-import { useOpenSkyFlights } from '../lib/useFlights';
+import { useFlights } from '../lib/useFlights';
 import { filterFlightsByBbox } from '../lib/filter';
 import ViewportObserver from './ViewportObserver';
 import { flightDetailsProvider } from '../lib/providers';
 import { useFlightDetails } from '../lib/useFlightDetails';
 import FlightDetailsPanel from './FlightDetailsPanel';
+import { createFlightIcon } from '../lib/marker';
+import type { FlightProvider } from '../lib/flightProviders';
 
 const DEFAULT_CENTER: [number, number] = [37.773972, -122.431297];
 const DEFAULT_ZOOM = 5;
 
-export default function MapView() {
+type MapViewProps = {
+  provider: FlightProvider;
+};
+
+export default function MapView({ provider }: MapViewProps) {
   const [bbox, setBbox] = useState<Bbox | null>(null);
   const [selectedIcao, setSelectedIcao] = useState<string | null>(null);
-  const { flights, loading, error } = useOpenSkyFlights({ bbox });
+  const { flights, loading, error } = useFlights({ bbox, provider });
   const { details, loading: detailsLoading, error: detailsError } = useFlightDetails(
     selectedIcao,
     flightDetailsProvider
@@ -43,6 +49,14 @@ export default function MapView() {
     [selectedIcao, visibleFlights, isE2E]
   );
 
+  const units = useMemo(
+    () =>
+      provider.id === 'aviation-edge'
+        ? { altitude: 'm', speed: 'km/h', verticalSpeed: 'm/s' }
+        : { altitude: 'm', speed: 'm/s', verticalSpeed: 'm/s' },
+    [provider.id]
+  );
+
   return (
     <div
       data-testid="map-root"
@@ -60,27 +74,52 @@ export default function MapView() {
         <ViewportObserver onBboxChange={setBbox} />
 
         {visibleFlights.map((flight) => (
-          <CircleMarker
+          <Marker
             key={flight.icao24}
-            center={[flight.latitude ?? 0, flight.longitude ?? 0]}
-            radius={4}
-            pathOptions={{ color: '#1f4b99', fillColor: '#1f4b99' }}
+            position={[flight.latitude ?? 0, flight.longitude ?? 0]}
+            icon={createFlightIcon(flight.heading)}
             eventHandlers={{
-              click: () => setSelectedIcao(flight.icao24)
+              click: () => setSelectedIcao(flight.icao24),
+              mouseover: (event) => {
+                event?.target?.openPopup?.();
+              },
+              mouseout: (event) => {
+                event?.target?.closePopup?.();
+              }
             }}
-          />
-        ))}
-        {visibleFlights.map((flight) => (
-          <CircleMarker
-            key={`${flight.icao24}-label`}
-            center={[flight.latitude ?? 0, flight.longitude ?? 0]}
-            radius={0}
-            pathOptions={{ opacity: 0 }}
           >
-            <Tooltip direction="top" offset={[0, -4]} opacity={0.9} permanent>
+            <Tooltip
+              direction="top"
+              offset={[0, -6]}
+              opacity={0.95}
+              permanent
+              className="flight-label"
+            >
               {flight.callsign ?? flight.icao24}
             </Tooltip>
-          </CircleMarker>
+            <Popup>
+              <div style={{ minWidth: 180 }}>
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                  {flight.callsign ?? flight.icao24}
+                </div>
+                <div>Altitude: {formatValue(flight.altitude, units.altitude)}</div>
+                <div>Speed: {formatValue(flight.velocity, units.speed)}</div>
+                <div>Heading: {formatValue(flight.heading, '°')}</div>
+                <div>
+                  Vertical speed:{' '}
+                  {formatValue(flight.verticalSpeed ?? null, units.verticalSpeed)}
+                </div>
+                <div>Status: {formatText(flight.status)}</div>
+                <div>Squawk: {formatText(flight.squawk)}</div>
+                <div>Airline: {formatText(formatAirline(flight))}</div>
+                <div>Aircraft: {formatText(formatAircraft(flight))}</div>
+                <div>
+                  Route: {formatRoute(flight, selectedIcao === flight.icao24 ? details : null)}
+                </div>
+                <div>Last update: {formatUpdated(flight.updated)}</div>
+              </div>
+            </Popup>
+          </Marker>
         ))}
 
         {details?.path.length ? (
@@ -97,6 +136,7 @@ export default function MapView() {
           details={details}
           loading={detailsLoading}
           error={detailsError}
+          units={units}
         />
       )}
 
@@ -121,9 +161,7 @@ export default function MapView() {
           Failed to load flights.
         </div>
       )}
-      <div style={attributionStyle}>
-        Data: OpenSky Network
-      </div>
+      <div style={attributionStyle}>{provider.attribution}</div>
     </div>
   );
 }
@@ -158,3 +196,46 @@ const e2eButtonStyle: React.CSSProperties = {
   border: '1px solid #c9c9c9',
   background: '#ffffff'
 };
+
+function formatValue(value: number | null, unit: string) {
+  if (value == null || Number.isNaN(value)) return 'N/A';
+  return `${Math.round(value)} ${unit}`;
+}
+
+function formatText(value: string | null | undefined) {
+  return value && value.trim().length > 0 ? value : 'N/A';
+}
+
+function formatAirline(flight: { airlineIata?: string | null; airlineIcao?: string | null }) {
+  return flight.airlineIata || flight.airlineIcao || null;
+}
+
+function formatAircraft(flight: {
+  aircraftReg?: string | null;
+  aircraftIcao?: string | null;
+  aircraftIata?: string | null;
+}) {
+  return flight.aircraftReg || flight.aircraftIcao || flight.aircraftIata || null;
+}
+
+function formatRoute(
+  flight: {
+    originIata?: string | null;
+    originIcao?: string | null;
+    destinationIata?: string | null;
+    destinationIcao?: string | null;
+  },
+  details: { origin?: { code: string }; destination?: { code: string } } | null
+) {
+  const origin = details?.origin?.code ?? flight.originIata ?? flight.originIcao ?? null;
+  const destination =
+    details?.destination?.code ?? flight.destinationIata ?? flight.destinationIcao ?? null;
+  if (!origin && !destination) return '??? → ???';
+  return `${origin ?? '???'} → ${destination ?? '???'}`;
+}
+
+function formatUpdated(updated: number | null | undefined) {
+  if (!updated) return 'N/A';
+  const date = new Date(updated * 1000);
+  return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+}

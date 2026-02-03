@@ -36,9 +36,10 @@ describe('FlightDetailsPanel', () => {
     );
 
     expect(screen.getByText('TEST123')).toBeInTheDocument();
-    expect(screen.getByText('KSFO')).toBeInTheDocument();
-    expect(screen.getByText('KDEN')).toBeInTheDocument();
-    expect(screen.getByText('250 kt')).toBeInTheDocument();
+    expect(screen.getByText(/KSFO/)).toBeInTheDocument();
+    expect(screen.getByText(/KDEN/)).toBeInTheDocument();
+    expect(screen.getByText(/250/)).toBeInTheDocument();
+    expect(screen.getByText(/kt/)).toBeInTheDocument();
   });
 
   it('shows loading state', () => {

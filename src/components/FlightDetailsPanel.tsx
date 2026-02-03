@@ -5,13 +5,19 @@ type FlightDetailsPanelProps = {
   details: FlightDetails | null;
   loading: boolean;
   error: Error | null;
+  units: {
+    altitude: string;
+    speed: string;
+    verticalSpeed: string;
+  };
 };
 
 export default function FlightDetailsPanel({
   flight,
   details,
   loading,
-  error
+  error,
+  units
 }: FlightDetailsPanelProps) {
   if (loading) {
     return (
@@ -32,14 +38,15 @@ export default function FlightDetailsPanel({
   return (
     <div style={panelStyle}>
       <div style={titleStyle}>{flight.callsign ?? flight.icao24}</div>
-      <div>Altitude: {flight.altitude ?? 'N/A'} ft</div>
-      <div>Speed: {flight.velocity ?? 'N/A'} kt</div>
-      <div>Heading: {flight.heading ?? 'N/A'}°</div>
-      <div>
-        Route:{' '}
-        {details?.origin ? details.origin.code : '???'} →{' '}
-        {details?.destination ? details.destination.code : '???'}
-      </div>
+      <div>Altitude: {formatValue(flight.altitude, units.altitude)}</div>
+      <div>Speed: {formatValue(flight.velocity, units.speed)}</div>
+      <div>Heading: {formatValue(flight.heading, '°')}</div>
+      <div>Vertical speed: {formatValue(flight.verticalSpeed ?? null, units.verticalSpeed)}</div>
+      <div>Status: {formatText(flight.status)}</div>
+      <div>Squawk: {formatText(flight.squawk)}</div>
+      <div>Airline: {formatText(formatAirline(flight))}</div>
+      <div>Aircraft: {formatText(formatAircraft(flight))}</div>
+      <div>Route: {formatRoute(flight, details)}</div>
     </div>
   );
 }
@@ -61,3 +68,35 @@ const titleStyle: React.CSSProperties = {
   fontSize: 14,
   marginBottom: 6
 };
+
+function formatValue(value: number | null, unit: string) {
+  if (value == null || Number.isNaN(value)) return 'N/A';
+  return `${Math.round(value)} ${unit}`;
+}
+
+function formatText(value: string | null | undefined) {
+  return value && value.trim().length > 0 ? value : 'N/A';
+}
+
+function formatAirline(flight: FlightState) {
+  return flight.airlineIata || flight.airlineIcao || null;
+}
+
+function formatAircraft(flight: FlightState) {
+  return flight.aircraftReg || flight.aircraftIcao || flight.aircraftIata || null;
+}
+
+function formatRoute(flight: FlightState, details: FlightDetails | null) {
+  const origin =
+    details?.origin?.code ??
+    flight.originIata ??
+    flight.originIcao ??
+    null;
+  const destination =
+    details?.destination?.code ??
+    flight.destinationIata ??
+    flight.destinationIcao ??
+    null;
+  if (!origin && !destination) return '??? → ???';
+  return `${origin ?? '???'} → ${destination ?? '???'}`;
+}

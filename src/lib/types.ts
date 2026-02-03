@@ -13,6 +13,22 @@ export type FlightState = {
   altitude: number | null;
   velocity: number | null;
   heading: number | null;
+  verticalSpeed?: number | null;
+  isGround?: number | null;
+  status?: string | null;
+  squawk?: string | null;
+  updated?: number | null;
+  airlineIata?: string | null;
+  airlineIcao?: string | null;
+  flightIata?: string | null;
+  flightIcao?: string | null;
+  aircraftIata?: string | null;
+  aircraftIcao?: string | null;
+  aircraftReg?: string | null;
+  originIata?: string | null;
+  originIcao?: string | null;
+  destinationIata?: string | null;
+  destinationIcao?: string | null;
 };
 
 export type LatLng = {

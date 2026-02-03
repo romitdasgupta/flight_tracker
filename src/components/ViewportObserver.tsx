@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useMapEvents } from 'react-leaflet';
 import type { Bbox } from '../lib/types';
 import { bboxFromBounds } from '../lib/bbox';
@@ -10,35 +10,15 @@ type ViewportObserverProps = {
 export default function ViewportObserver({ onBboxChange }: ViewportObserverProps) {
   const map = useMapEvents({
     moveend: () => {
-      const bounds = map.getBounds();
-      const sw = bounds.getSouthWest();
-      const ne = bounds.getNorthEast();
-      onBboxChange(
-        bboxFromBounds({
-          south: sw.lat,
-          west: sw.lng,
-          north: ne.lat,
-          east: ne.lng
-        })
-      );
+      emitBbox();
     },
     zoomend: () => {
-      const bounds = map.getBounds();
-      const sw = bounds.getSouthWest();
-      const ne = bounds.getNorthEast();
-      onBboxChange(
-        bboxFromBounds({
-          south: sw.lat,
-          west: sw.lng,
-          north: ne.lat,
-          east: ne.lng
-        })
-      );
+      emitBbox();
     }
   });
 
-  useEffect(() => {
-    const bounds = map.getBounds();
+  const emitBbox = useCallback(() => {
+    const bounds = map.wrapLatLngBounds(map.getBounds());
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
     onBboxChange(
@@ -50,6 +30,10 @@ export default function ViewportObserver({ onBboxChange }: ViewportObserverProps
       })
     );
   }, [map, onBboxChange]);
+
+  useEffect(() => {
+    emitBbox();
+  }, [emitBbox]);
 
   return null;
 }

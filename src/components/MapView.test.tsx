@@ -8,31 +8,37 @@ vi.mock('react-leaflet', () => ({
     <div data-testid="map">{children}</div>
   ),
   TileLayer: () => null,
-  CircleMarker: ({
-    center,
+  Marker: ({
+    position,
     children,
-    eventHandlers
+    eventHandlers,
+    icon
   }: {
-    center: [number, number];
+    position: [number, number];
     children?: ReactNode;
-    eventHandlers?: { click?: () => void };
+    eventHandlers?: { click?: () => void; mouseover?: () => void; mouseout?: () => void };
+    icon?: { options?: { html?: string } };
   }) => (
     <div
       data-testid="marker"
-      data-center={`${center[0]},${center[1]}`}
+      data-center={`${position[0]},${position[1]}`}
+      data-icon-html={icon?.options?.html ?? ''}
       onClick={() => eventHandlers?.click?.()}
+      onMouseOver={() => eventHandlers?.mouseover?.()}
+      onMouseOut={() => eventHandlers?.mouseout?.()}
     >
       {children}
     </div>
   ),
   Tooltip: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  Popup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   Polyline: () => null
 }));
 
-const mockUseOpenSkyFlights = vi.fn();
+const mockUseFlights = vi.fn();
 
 vi.mock('../lib/useFlights', () => ({
-  useOpenSkyFlights: (...args: unknown[]) => mockUseOpenSkyFlights(...args)
+  useFlights: (...args: unknown[]) => mockUseFlights(...args)
 }));
 
 const mockUseFlightDetails = vi.fn();
@@ -53,12 +59,12 @@ vi.mock('./ViewportObserver', () => ({
 
 describe('MapView', () => {
   beforeEach(() => {
-    mockUseOpenSkyFlights.mockReset();
+    mockUseFlights.mockReset();
     mockUseFlightDetails.mockReset();
   });
 
   it('renders markers for flights inside viewport', () => {
-    mockUseOpenSkyFlights.mockReturnValue({
+    mockUseFlights.mockReturnValue({
       flights: [
         {
           icao24: 'abc123',
@@ -89,15 +95,26 @@ describe('MapView', () => {
       error: null
     });
 
-    render(<MapView />);
+    render(
+      <MapView
+        provider={{
+          id: 'opensky',
+          name: 'OpenSky',
+          attribution: 'Data: OpenSky Network',
+          getStates: vi.fn()
+        }}
+      />
+    );
 
     const markers = screen.getAllByTestId('marker');
-    expect(markers).toHaveLength(2);
+    expect(markers).toHaveLength(1);
     expect(markers[0]).toHaveAttribute('data-center', '12,22');
+    expect(markers[0]).toHaveAttribute('data-icon-html');
+    expect(markers[0].getAttribute('data-icon-html')).toContain('rotate(90deg)');
   });
 
   it('shows loading state', () => {
-    mockUseOpenSkyFlights.mockReturnValue({
+    mockUseFlights.mockReturnValue({
       flights: [],
       loading: true,
       error: null
@@ -109,12 +126,21 @@ describe('MapView', () => {
       error: null
     });
 
-    render(<MapView />);
+    render(
+      <MapView
+        provider={{
+          id: 'opensky',
+          name: 'OpenSky',
+          attribution: 'Data: OpenSky Network',
+          getStates: vi.fn()
+        }}
+      />
+    );
     expect(screen.getByRole('status')).toHaveTextContent('Loading flights...');
   });
 
   it('shows error state', () => {
-    mockUseOpenSkyFlights.mockReturnValue({
+    mockUseFlights.mockReturnValue({
       flights: [],
       loading: false,
       error: new Error('nope')
@@ -126,12 +152,21 @@ describe('MapView', () => {
       error: null
     });
 
-    render(<MapView />);
+    render(
+      <MapView
+        provider={{
+          id: 'opensky',
+          name: 'OpenSky',
+          attribution: 'Data: OpenSky Network',
+          getStates: vi.fn()
+        }}
+      />
+    );
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to load flights.');
   });
 
   it('renders OpenSky attribution', () => {
-    mockUseOpenSkyFlights.mockReturnValue({
+    mockUseFlights.mockReturnValue({
       flights: [],
       loading: false,
       error: null
@@ -143,7 +178,16 @@ describe('MapView', () => {
       error: null
     });
 
-    render(<MapView />);
+    render(
+      <MapView
+        provider={{
+          id: 'opensky',
+          name: 'OpenSky',
+          attribution: 'Data: OpenSky Network',
+          getStates: vi.fn()
+        }}
+      />
+    );
     expect(screen.getByText('Data: OpenSky Network')).toBeInTheDocument();
   });
 });

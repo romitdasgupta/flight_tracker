@@ -1,0 +1,22 @@
+{
+  "providers": [
+    {
+      "id": "opensky",
+      "name": "OpenSky",
+      "type": "opensky",
+      "baseUrl": "https://opensky-network.org/api/states/all",
+      "attribution": "Data: OpenSky Network"
+    },
+    {
+      "id": "aviation-edge",
+      "name": "Aviation Edge",
+      "type": "aviation-edge",
+      "baseUrl": "https://aviation-edge.com/v2/public/flights",
+      "apiKeyEnv": "VITE_AVIATION_EDGE_API_KEY",
+      "attribution": "Data: Aviation Edge",
+      "params": {
+        "limit": 300
+      }
+    }
+  ]
+}

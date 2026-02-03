@@ -9,20 +9,35 @@ vi.mock('react-leaflet', () => ({
     <div data-testid="map">{children}</div>
   ),
   TileLayer: () => null,
-  CircleMarker: ({ center, children }: { center: [number, number]; children?: ReactNode }) => (
-    <div data-testid="marker" data-center={`${center[0]},${center[1]}`}>
+  Marker: ({
+    position,
+    children,
+    eventHandlers
+  }: {
+    position: [number, number];
+    children?: ReactNode;
+    eventHandlers?: { click?: () => void; mouseover?: () => void; mouseout?: () => void };
+  }) => (
+    <div
+      data-testid="marker"
+      data-center={`${position[0]},${position[1]}`}
+      onClick={() => eventHandlers?.click?.()}
+      onMouseOver={() => eventHandlers?.mouseover?.()}
+      onMouseOut={() => eventHandlers?.mouseout?.()}
+    >
       {children}
     </div>
   ),
-  Tooltip: ({ children }: { children: ReactNode }) => (
-    <div data-testid="label">{children}</div>
+  Tooltip: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <div data-testid="label" data-class={className}>{children}</div>
   ),
+  Popup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   Polyline: () => null
 }));
 
-const mockUseOpenSkyFlights = vi.fn();
+const mockUseFlights = vi.fn();
 vi.mock('../lib/useFlights', () => ({
-  useOpenSkyFlights: (...args: unknown[]) => mockUseOpenSkyFlights(...args)
+  useFlights: (...args: unknown[]) => mockUseFlights(...args)
 }));
 
 const mockUseFlightDetails = vi.fn();
@@ -55,7 +70,7 @@ const flights: FlightState[] = [
 
 describe('MapView labels', () => {
   it('renders labels for visible flights', () => {
-    mockUseOpenSkyFlights.mockReturnValue({
+    mockUseFlights.mockReturnValue({
       flights,
       loading: false,
       error: null
@@ -67,9 +82,19 @@ describe('MapView labels', () => {
       error: null
     });
 
-    render(<MapView />);
+    render(
+      <MapView
+        provider={{
+          id: 'opensky',
+          name: 'OpenSky',
+          attribution: 'Data: OpenSky Network',
+          getStates: vi.fn()
+        }}
+      />
+    );
 
     const label = screen.getByTestId('label');
     expect(label).toHaveTextContent('TEST123');
+    expect(label).toHaveAttribute('data-class', 'flight-label');
   });
 });

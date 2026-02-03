@@ -25,7 +25,16 @@ export function createOpenSkyClient(options: OpenSkyClientOptions = {}) {
   async function getStates(bbox: Bbox): Promise<FlightState[]> {
     const key = JSON.stringify(bbox);
     const now = Date.now();
+
+    // Cache: If same bounds and fresh enough, return last result.
     if (lastKey === key && now - lastFetchedAt < cacheMs) {
+      return lastResult;
+    }
+
+    // Rate limit: If different bounds but too soon, return last result to avoid 429.
+    // OpenSky anonymous limit is ~10s resolution, potentially strict rate limits.
+    const RELAXED_Refetch_Interval = 5000;
+    if (now - lastFetchedAt < RELAXED_Refetch_Interval) {
       return lastResult;
     }
 
@@ -63,11 +72,13 @@ export function createOpenSkyClient(options: OpenSkyClientOptions = {}) {
       } satisfies FlightState;
     });
 
+    const unique = Array.from(new Map(mapped.map((f) => [f.icao24, f])).values());
+
     lastKey = key;
     lastFetchedAt = now;
-    lastResult = mapped;
+    lastResult = unique;
 
-    return mapped;
+    return unique;
   }
 
   return { getStates };

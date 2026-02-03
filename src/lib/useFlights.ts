@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Bbox, FlightState } from './types';
-import { createOpenSkyClient } from './opensky';
+import type { FlightProvider } from './flightProviders';
 
-type UseOpenSkyFlightsOptions = {
+type UseFlightsOptions = {
   bbox: Bbox | null;
-  baseUrl?: string;
+  provider: FlightProvider | null;
 };
 
-export function useOpenSkyFlights({ bbox, baseUrl }: UseOpenSkyFlightsOptions) {
-  const client = useMemo(() => createOpenSkyClient({ baseUrl }), [baseUrl]);
+export function useFlights({ bbox, provider }: UseFlightsOptions) {
+  const client = useMemo(() => provider, [provider]);
   const [flights, setFlights] = useState<FlightState[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    if (!bbox) {
+    if (!bbox || !client) {
       setFlights([]);
       setLoading(false);
       setError(null);
@@ -34,6 +34,8 @@ export function useOpenSkyFlights({ bbox, baseUrl }: UseOpenSkyFlightsOptions) {
       })
       .catch((err: Error) => {
         if (cancelled) return;
+        // Surface API failures for local debugging.
+        console.error(`${client.name} API request failed`, err);
         setError(err);
         setLoading(false);
       });
